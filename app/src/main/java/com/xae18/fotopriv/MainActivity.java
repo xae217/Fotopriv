@@ -32,6 +32,7 @@ import android.view.View;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -56,14 +57,18 @@ public class MainActivity extends AppCompatActivity {
         tv.setText("");
         //copyToStorage();
 
-        final Button buttonClassify = (Button) findViewById(R.id.button);
+        //copy sample image to cache
+        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.space_shuttle);
+        copyToCache(sampleImg);
+
+        final Button buttonClassify = (Button) findViewById(R.id.classify);
         buttonClassify.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 long tStart = System.currentTimeMillis();
 
                 TextView tv = (TextView) findViewById(R.id.testTextView);
 
-                tv.setText(NativeClass.getStringFromNative());
+                tv.setText(NativeClass.getStringFromNative(0));
 
                 long tEnd = System.currentTimeMillis();
                 long tDelta = tEnd - tStart;
@@ -76,8 +81,27 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
+        final Button buttonRecognize = (Button) findViewById(R.id.RecognizeFace);
+        buttonRecognize.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                long tStart = System.currentTimeMillis();
 
-        final Button btnSelect = (Button) findViewById(R.id.button2);
+                TextView tv = (TextView) findViewById(R.id.testTextView);
+
+                tv.setText(NativeClass.getStringFromNative(1));
+
+                long tEnd = System.currentTimeMillis();
+                long tDelta = tEnd - tStart;
+                double elapsedSeconds = tDelta / 1000.0;
+
+
+                TextView clock = (TextView) findViewById(R.id.clock);
+                clock.setText("Recognized in "+Double.toString(elapsedSeconds) + " secs");
+            }
+        });
+
+
+        final Button btnSelect = (Button) findViewById(R.id.loadImage);
         btnSelect.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -149,21 +173,24 @@ public class MainActivity extends AppCompatActivity {
 
                 imgview.setImageBitmap(img);
             }
-
-            String destFolder = getCacheDir().getAbsolutePath();
-
-            FileOutputStream out = null;
-            try {
-                out = new FileOutputStream(destFolder + "/image.jpg");
-                img.compress(Bitmap.CompressFormat.JPEG, 100, out);
-                TextView tv = (TextView) findViewById(R.id.testTextView);
-                tv.setText(destFolder + "/image.jpg");
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+            copyToCache(img);
 
         }
 
+    }
+
+    private void copyToCache(Bitmap img) {
+        String destFolder = getCacheDir().getAbsolutePath();
+
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(destFolder + "/image.jpg");
+            img.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            TextView tv = (TextView) findViewById(R.id.testTextView);
+            tv.setText(destFolder + "/image.jpg");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     private void copyToStorage() {

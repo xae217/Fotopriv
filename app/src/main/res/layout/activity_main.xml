@@ -28,8 +28,8 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_alignEnd="@+id/button"
-        android:layout_alignRight="@+id/button"/>
+        android:layout_alignEnd="@+id/classify"
+        android:layout_alignRight="@+id/classify"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -41,24 +41,37 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="LOAD IMAGE"
-        android:id="@+id/button2"
-        android:layout_below="@+id/button"
+        android:text="Classify"
+        android:id="@+id/classify"
+        android:layout_below="@+id/clock"
         android:layout_alignParentStart="true"
         android:layout_alignParentLeft="true"
-        android:layout_marginTop="34dp"
+        android:layout_alignEnd="@+id/loadImage"
+        android:layout_alignRight="@+id/loadImage"
+        android:background="#85c4f7" />
+
+    <Button
+        android:text="Recognize FAce"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/RecognizeFace"
+        android:layout_below="@+id/classify"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="21dp"
+        android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"/>
+        android:background="#85c4f7" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Classify"
-        android:id="@+id/button"
-        android:layout_below="@+id/clock"
-        android:layout_alignParentStart="true"
+        android:text="LOAD IMAGE"
+        android:id="@+id/loadImage"
+        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignEnd="@+id/button2"
-        android:layout_alignRight="@+id/button2"
-        android:background="#85c4f7" />
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="24dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 </RelativeLayout>

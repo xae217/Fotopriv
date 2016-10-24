@@ -99,19 +99,9 @@ std::vector<String> readClassNames(const char *filename = "/sdcard/android-openc
 }
 
 
-
-
-JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
-        (JNIEnv * env, jobject obj){
-
-    String modelTxt = "/sdcard/android-opencv/bvlc_googlenet.prototxt.txt";
-    String modelBin = "/sdcard/android-opencv/bvlc_googlenet.caffemodel";
+string recognizeFace() {
     String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
-
-
-    String filename = "/sdcard/aligned-images/jimmy-fallon/";
-
-    /******************************* FACE-RECOG ****************************************/
+    string filename = "/sdcard/aligned-images/jimmy-fallon/";
     string fn_csv = "/sdcard/csv/faces.csv";
     // These vectors hold the images and corresponding labels.
     std::vector<Mat> images;
@@ -127,7 +117,7 @@ JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNativ
     }
     // Quit if there are not enough images for this demo.
     if(images.size() <= 1) {
-        string error_message = "This demo needs at least 2 images to work. Please add more images to your data set!";
+        string error_message = "At least 2 images to recognize a face.";
         CV_Error(CV_StsError, error_message);
     }
     // Get the height from the first image. We'll need this
@@ -135,10 +125,8 @@ JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNativ
     // size:
     int height = images[0].rows;
     // Set test to input image
-    Mat testSample = imread(imageFile, 0);
+    Mat testSample = imread(imageFile, 0); // 0 loads it as grayscale
     resize(testSample, testSample, Size(100, 100));
-    //images.pop_back();
-    //labels.pop_back();
 
     Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,86.0);
     model->train(images, labels);
@@ -146,12 +134,19 @@ JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNativ
     int predictedLabel = -1;
     double confidence = 0.0;
     model->predict(testSample, predictedLabel, confidence);
-    string result_message = format("Confidence is: %f. Label is %d", confidence, predictedLabel);
-    std::cout << result_message << std::endl;
+    //TODO: remember to use confidence
+    string result_message = format("Label is %d", predictedLabel);
+    //std::cout << result_message << std::endl;
+    return result_message;
 
-    /******************************* GOOGLENET ******************************************/
+}
 
-    /*
+string recognizeGoogLenet() {
+    String modelTxt = "/sdcard/android-opencv/bvlc_googlenet.prototxt.txt";
+    String modelBin = "/sdcard/android-opencv/bvlc_googlenet.caffemodel";
+    String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
+
+
     //! [Create the importer of Caffe model]
     Ptr<dnn::Importer> importer;
     try                                     //Try to import Caffe GoogleNet model
@@ -215,11 +210,19 @@ JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNativ
 
     std::vector<String> classNames = readClassNames();
     std::cout << "Best class: #" << classId << " '" << classNames.at(classId) << "'" << std::endl;
-    std::cout << "Probability: " << classProb * 100 << "%" << std::endl;
-    */
 
-    return env->NewStringUTF(result_message.c_str());
-    //return env->NewStringUTF(classNames.at(classId).c_str());
+    return classNames.at(classId);
 
+}
+
+JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
+        (JNIEnv * env, jobject obj, jint selection){
+
+    if (selection == 1) {
+        return env->NewStringUTF(recognizeFace().c_str());
+    }
+    else if (selection == 0) {
+        return env->NewStringUTF(recognizeGoogLenet().c_str());
+    }
 
 }
