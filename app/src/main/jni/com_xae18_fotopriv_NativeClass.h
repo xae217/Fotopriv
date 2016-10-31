@@ -13,7 +13,7 @@ extern "C" {
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jobject, jint, jstring);
 
 #ifdef __cplusplus
 }

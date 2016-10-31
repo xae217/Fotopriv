@@ -5,5 +5,5 @@ package com.xae18.fotopriv;
  */
 
 public class NativeClass {
-    public native static String getStringFromNative(int selection);
+    public native static String getStringFromNative(int selection, String storagePath);
 }

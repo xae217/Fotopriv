@@ -8,6 +8,7 @@
 
 package com.xae18.fotopriv;
 
+import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.Manifest;
@@ -32,9 +33,11 @@ import android.view.View;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.io.InputStream;
 import java.io.OutputStream;
+
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,7 +58,8 @@ public class MainActivity extends AppCompatActivity {
         TextView tv = (TextView) findViewById(R.id.testTextView);
         verifyStoragePermissions(this);
         tv.setText("");
-        //copyToStorage();
+
+        final String storagePath = copyToStorage();
 
         //copy sample image to cache
         Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.space_shuttle);
@@ -68,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView tv = (TextView) findViewById(R.id.testTextView);
 
-                tv.setText(NativeClass.getStringFromNative(0));
+                tv.setText(NativeClass.getStringFromNative(0, storagePath));
 
                 long tEnd = System.currentTimeMillis();
                 long tDelta = tEnd - tStart;
@@ -88,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView tv = (TextView) findViewById(R.id.testTextView);
 
-                tv.setText(NativeClass.getStringFromNative(1));
+                tv.setText(NativeClass.getStringFromNative(1,storagePath));
 
                 long tEnd = System.currentTimeMillis();
                 long tDelta = tEnd - tStart;
@@ -172,12 +176,22 @@ public class MainActivity extends AppCompatActivity {
                 img = BitmapFactory.decodeFile(selectedImagePath, options);
 
                 imgview.setImageBitmap(img);
+                //testFaceDetector(selectedImagePath);
             }
+
             copyToCache(img);
 
         }
 
     }
+
+
+    /* Check if file exists in storage
+    private boolean checkDependy(String fname) {
+        File file = getBaseContext().getFileStreamPath(fname);
+        return file.exists();
+    }
+    */
 
     private void copyToCache(Bitmap img) {
         String destFolder = getCacheDir().getAbsolutePath();
@@ -193,10 +207,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void copyToStorage() {
+    private String copyToStorage() {
         AssetManager assetManager = getResources().getAssets();
         String[] files = null;
-
+        String storagePath = getApplicationContext().getFilesDir().getAbsolutePath();
         try {
             files = assetManager.list("Files");
         } catch (Exception e) {
@@ -212,6 +226,7 @@ public class MainActivity extends AppCompatActivity {
 
                 in = assetManager.open("Files/" + files[i]);
                 out = new FileOutputStream(getApplicationContext().getFilesDir() + files[i]);
+
 
                 File file = new File(getApplicationContext().getFilesDir(), files[i]);
 
@@ -232,7 +247,17 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(MYLOG, "ERROR: " + e.toString());
             }
         }
+        return storagePath;
     }
+
+//    private void testFaceDetector(String imagePath) {
+//        FaceDetector fd = new FaceDetector(getApplicationContext().getFilesDir().getAbsolutePath());
+//        try {
+//            fd.detectFace(imagePath);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     // API 23+ Requires to ask for permission dynamically.
 
@@ -262,4 +287,5 @@ public class MainActivity extends AppCompatActivity {
             );
         }
     }
+
 }

@@ -73,10 +73,10 @@ void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb)
 }
 
 
-
-
-std::vector<String> readClassNames(const char *filename = "/sdcard/android-opencv/synset_words.txt")
-{
+std::vector<String> readClassNames(const char *path) {
+    char filename[1000];
+    strcpy(filename, path);
+    strcat(filename, "/synset_words.txt");
     std::vector<String> classNames;
 
     std::ifstream fp(filename);
@@ -99,7 +99,7 @@ std::vector<String> readClassNames(const char *filename = "/sdcard/android-openc
 }
 
 
-string recognizeFace() {
+string recognizeFace(const char* path) {
     String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
     string filename = "/sdcard/aligned-images/jimmy-fallon/";
     string fn_csv = "/sdcard/csv/faces.csv";
@@ -141,9 +141,9 @@ string recognizeFace() {
 
 }
 
-string recognizeGoogLenet() {
-    String modelTxt = "/sdcard/android-opencv/bvlc_googlenet.prototxt.txt";
-    String modelBin = "/sdcard/android-opencv/bvlc_googlenet.caffemodel";
+string recognizeGoogLenet(const char* path) {
+    String modelTxt = string(path) + "bvlc_googlenet.prototxt.txt";
+    String modelBin = string(path) + "bvlc_googlenet.caffemodel";
     String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
 
 
@@ -208,21 +208,28 @@ string recognizeGoogLenet() {
     std::string str1 = sstr.str();
 
 
-    std::vector<String> classNames = readClassNames();
+    std::vector<String> classNames = readClassNames(path);
     std::cout << "Best class: #" << classId << " '" << classNames.at(classId) << "'" << std::endl;
+
 
     return classNames.at(classId);
 
 }
 
 JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
-        (JNIEnv * env, jobject obj, jint selection){
+        (JNIEnv * env, jobject obj, jint selection, jstring path){
+
+    const char *storagePath = env->GetStringUTFChars(path, 0);
+
+       // use your string
+
 
     if (selection == 1) {
-        return env->NewStringUTF(recognizeFace().c_str());
+        return env->NewStringUTF(recognizeFace(storagePath).c_str());
     }
     else if (selection == 0) {
-        return env->NewStringUTF(recognizeGoogLenet().c_str());
+        return env->NewStringUTF(recognizeGoogLenet(storagePath).c_str());
     }
+    env->ReleaseStringUTFChars(path, storagePath);
 
 }
