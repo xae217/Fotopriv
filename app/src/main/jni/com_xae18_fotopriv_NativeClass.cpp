@@ -8,13 +8,58 @@
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+
+#include "opencv2/core.hpp"
+#include "opencv2/face.hpp"
 using namespace cv;
 using namespace cv::dnn;
+using namespace cv::face;
 
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
+
+#include <sstream>
 using namespace std;
+
+
+Mat norm_0_255(InputArray _src) {
+    Mat src = _src.getMat();
+    // Create and return normalized image:
+    Mat dst;
+    switch(src.channels()) {
+    case 1:
+        cv::normalize(_src, dst, 0, 255, NORM_MINMAX, CV_8UC1);
+        break;
+    case 3:
+        cv::normalize(_src, dst, 0, 255, NORM_MINMAX, CV_8UC3);
+        break;
+    default:
+        src.copyTo(dst);
+        break;
+    }
+    return dst;
+}
+
+void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, char separator = ';') {
+    std::ifstream file(filename.c_str(), ifstream::in);
+    if (!file) {
+        string error_message = "No valid input file was given, please check the given filename.";
+        CV_Error(CV_StsBadArg, error_message);
+    }
+    string line, path, classlabel;
+    while (getline(file, line)) {
+        stringstream liness(line);
+        getline(liness, path, separator);
+        getline(liness, classlabel);
+        if(!path.empty() && !classlabel.empty()) {
+            Mat img = imread(path, 0);
+            resize(img, img, Size(100, 100));
+            images.push_back(img);
+            labels.push_back(atoi(classlabel.c_str()));
+        }
+    }
+}
 
 
 /* Find best class for the blob (i. e. class with maximal probability) */
@@ -28,10 +73,10 @@ void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb)
 }
 
 
-
-
-std::vector<String> readClassNames(const char *filename = "/sdcard/android-opencv/synset_words.txt")
-{
+std::vector<String> readClassNames(const char *path) {
+    char filename[1000];
+    strcpy(filename, path);
+    strcat(filename, "/synset_words.txt");
     std::vector<String> classNames;
 
     std::ifstream fp(filename);
@@ -54,15 +99,52 @@ std::vector<String> readClassNames(const char *filename = "/sdcard/android-openc
 }
 
 
-
-
-JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
-        (JNIEnv * env, jobject obj){
-
-    String modelTxt = "/sdcard/android-opencv/bvlc_googlenet.prototxt.txt";
-    String modelBin = "/sdcard/android-opencv/bvlc_googlenet.caffemodel";
+string recognizeFace(const char* path) {
     String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
+    string filename = "/sdcard/aligned-images/jimmy-fallon/";
+    string fn_csv = "/sdcard/csv/faces.csv";
+    // These vectors hold the images and corresponding labels.
+    std::vector<Mat> images;
+    std::vector<int> labels;
+    // Read in the data. This can fail if no valid
+    // input filename is given.
+    try {
+        read_csv(fn_csv, images, labels);
+    } catch (cv::Exception& e) {
+        cerr << "Error opening file \"" << fn_csv << "\". Reason: " << e.msg << endl;
+        // nothing more we can do
+        exit(1);
+    }
+    // Quit if there are not enough images for this demo.
+    if(images.size() <= 1) {
+        string error_message = "At least 2 images to recognize a face.";
+        CV_Error(CV_StsError, error_message);
+    }
+    // Get the height from the first image. We'll need this
+    // later in code to reshape the images to their original
+    // size:
+    int height = images[0].rows;
+    // Set test to input image
+    Mat testSample = imread(imageFile, 0); // 0 loads it as grayscale
+    resize(testSample, testSample, Size(100, 100));
 
+    Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,86.0);
+    model->train(images, labels);
+
+    int predictedLabel = -1;
+    double confidence = 0.0;
+    model->predict(testSample, predictedLabel, confidence);
+    //TODO: remember to use confidence
+    string result_message = format("Label is %d", predictedLabel);
+    //std::cout << result_message << std::endl;
+    return result_message;
+
+}
+
+string recognizeGoogLenet(const char* path) {
+    String modelTxt = string(path) + "bvlc_googlenet.prototxt.txt";
+    String modelBin = string(path) + "bvlc_googlenet.caffemodel";
+    String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
 
 
     //! [Create the importer of Caffe model]
@@ -126,11 +208,28 @@ JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNativ
     std::string str1 = sstr.str();
 
 
-    std::vector<String> classNames = readClassNames();
+    std::vector<String> classNames = readClassNames(path);
     std::cout << "Best class: #" << classId << " '" << classNames.at(classId) << "'" << std::endl;
-    std::cout << "Probability: " << classProb * 100 << "%" << std::endl;
 
-    return env->NewStringUTF(classNames.at(classId).c_str());
 
-    return env->NewStringUTF("Hello from JNI");
+    return classNames.at(classId);
+
+}
+
+JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
+        (JNIEnv * env, jobject obj, jint selection, jstring path){
+
+    const char *storagePath = env->GetStringUTFChars(path, 0);
+
+       // use your string
+
+
+    if (selection == 1) {
+        return env->NewStringUTF(recognizeFace(storagePath).c_str());
+    }
+    else if (selection == 0) {
+        return env->NewStringUTF(recognizeGoogLenet(storagePath).c_str());
+    }
+    env->ReleaseStringUTFChars(path, storagePath);
+
 }
