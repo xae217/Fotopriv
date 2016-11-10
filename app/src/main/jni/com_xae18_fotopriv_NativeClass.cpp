@@ -1,6 +1,7 @@
 //
-// Created by xae18 on 10/17/16.
+// Created by xae18 on 10/17/16
 //
+
 #include <com_xae18_fotopriv_NativeClass.h>
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/blob.hpp>
@@ -30,10 +31,19 @@ String face_cascade_name = "/sdcard/haar/haarcascade_frontalface_alt.xml";
 String eyes_cascade_name = "/sdcard/haar/haarcascade_eye_tree_eyeglasses.xml";
 CascadeClassifier face_cascade;
 CascadeClassifier eyes_cascade;
-RNG rng(12345);
+RNG rng(12345); // Not used yet //TODO: make sure to use this or delete it
+
+//TODO: remove these when done with testing
+char img_counter = 49; // Counter for images.
+char img_counter2 = 48;
+
+//Prototype
+//TODO: create header file and refactor code
+Mat processFace(Mat frame);
 
 //face recognition model
-Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,86.0);
+Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,82.0);
+
 const char* fotopriv_model = "/sdcard/saved-model/fotopriv.yml";
 
 Mat norm_0_255(InputArray _src) {
@@ -73,9 +83,24 @@ void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, 
 
         if(!path.empty() && !classlabel.empty()) {
             Mat img = imread(path, 0);
-            resize(img, img, Size(100, 100));
-            images.push_back(img);
-            labels.push_back(atoi(classlabel.c_str()));
+            //TODO: process images (detect, crop and align)
+            Mat processed_img = processFace(img);
+            //resize(img, img, Size(100, 100));
+            if(!processed_img.empty()) {
+                String write_path = string("/sdcard/aligned/p-") + img_counter2 + img_counter  + ".jpg";
+                //imwrite(write_path, processed_img);
+
+                if(img_counter == 57) {
+                    img_counter = 48;
+                    img_counter2++;
+                }
+                else {
+                    img_counter++;
+                }
+
+                images.push_back(processed_img);
+                labels.push_back(atoi(classlabel.c_str()));
+            }
         }
     }
 }
@@ -107,8 +132,9 @@ std::vector<String> readClassNames(const char *path) {
     std::string name;
     while (!fp.eof()) {
         std::getline(fp, name);
-        if (name.length())
-            classNames.push_back( name.substr(name.find(' ')+1) );
+        if (name.length()) {
+            classNames.push_back(name.substr(name.find(' ')+1));
+        }
     }
 
     fp.close();
@@ -137,8 +163,9 @@ Mat alignFace(Mat frame) {
         align(frame, aligned_image, landmarks, aligned_landmarks);
 
         if(!aligned_image.empty()) {
-            resize(aligned_image, res, Size(120, 120), 0, 0, INTER_LINEAR);
-            //imwrite("/sdcard/aligned/only-aligned.jpg", res);
+
+            resize(aligned_image, res, Size(100, 100), 0, 0, INTER_CUBIC);
+            //imwrite("/sdcard/aligned/linear.jpg", res);
             return res;
         }
     }
@@ -146,7 +173,7 @@ Mat alignFace(Mat frame) {
 }
 
 
-Mat detectAndDisplay(Mat frame ) {
+Mat processFace(Mat frame) {
     std::vector<Rect> faces;
     Mat crop;
     Mat aligned;
@@ -156,54 +183,71 @@ Mat detectAndDisplay(Mat frame ) {
     //equalizeHist(frame, frame);
 
     aligned = alignFace(frame);
-    // Detect faces
-    face_cascade.detectMultiScale(aligned, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
 
-    // Set Region of Interest
-    cv::Rect roi_b;
-    cv::Rect roi_c;
+    if (!aligned.empty()) {
+        /*
+        // Detect faces
+        face_cascade.detectMultiScale(aligned, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
 
-    size_t ic = 0; // ic is index of current element
-    int ac = 0; // ac is area of current element
+        // Set Region of Interest
+        cv::Rect roi_b;
+        cv::Rect roi_c;
 
-    size_t ib = 0; // ib is index of biggest element
-    int ab = 0; // ab is area of biggest element
+        size_t ic = 0; // ic is index of current element
+        int ac = 0; // ac is area of current element
 
-    int reduce = 10;
-    for (ic = 0; ic < faces.size(); ic++) { // Iterate through all current elements (detected faces)
+        size_t ib = 0; // ib is index of biggest element
+        int ab = 0; // ab is area of biggest element
 
-        roi_c.x = faces[ic].x + reduce/2;
-        roi_c.y = faces[ic].y + reduce * 2;
-        roi_c.width = (faces[ic].width - reduce);
-        roi_c.height = (faces[ic].height - reduce);
+        int reduce = 10;
+        for (ic = 0; ic < faces.size(); ic++) { // Iterate through all current elements (detected faces)
 
-        ac = roi_c.width * roi_c.height; // Get the area of current element (detected face)
+            roi_c.x = faces[ic].x + reduce/2;
+            roi_c.y = faces[ic].y + reduce * 2;
+            roi_c.width = (faces[ic].width - reduce);
+            roi_c.height = (faces[ic].height - reduce);
 
-        roi_b.x = faces[ib].x + reduce/2;
-        roi_b.y = faces[ib].y + reduce * 2;
-        roi_b.width = (faces[ib].width - reduce);
-        roi_b.height = (faces[ib].height - reduce);
+            ac = roi_c.width * roi_c.height; // Get the area of current element (detected face)
 
-        ab = roi_b.width * roi_b.height; // Get the area of biggest element, at beginning it is same as "current" element
+            roi_b.x = faces[ib].x + reduce/2;
+            roi_b.y = faces[ib].y + reduce * 2;
+            roi_b.width = (faces[ib].width - reduce);
+            roi_b.height = (faces[ib].height - reduce);
 
-        if (ac > ab) {
-            ib = ic;
-            roi_b.x = faces[ib].x;
-            roi_b.y = faces[ib].y;
-            roi_b.width = (faces[ib].width);
-            roi_b.height = (faces[ib].height);
+            ab = roi_b.width * roi_b.height; // Get the area of biggest element, at beginning it is same as "current" element
+
+            if (ac > ab) {
+                ib = ic;
+                roi_b.x = faces[ib].x;
+                roi_b.y = faces[ib].y;
+                roi_b.width = (faces[ib].width);
+                roi_b.height = (faces[ib].height);
+            }
+
+            crop = aligned(roi_b);
+
+            //cvtColor(crop, gray, CV_BGR2GRAY); // Convert cropped image to Grayscale
         }
+        */
+        int offset_x = 20;
+        int offset_y = 30;
 
-        crop = aligned(roi_b);
-        resize(crop, res, Size(100, 100), 0, 0, INTER_LINEAR); // This will be needed later while saving
-        //imwrite("/sdcard/aligned/crop-aligned.jpg", res);
-        return res;
-
-        //cvtColor(crop, gray, CV_BGR2GRAY); // Convert cropped image to Grayscale
+        cv::Rect roi;
+        roi.x = offset_x;
+        roi.y = offset_y;
+        roi.width = aligned.size().width - (offset_x*2);
+        roi.height = aligned.size().height - (offset_y*2 - 20);
+        crop = aligned(roi);
+        if (!crop.empty()) {
+            resize(crop, res, Size(100, 100), 0, 0, INTER_CUBIC);
+            //imwrite("/sdcard/aligned/crop.jpg", res);
+            return res;
+        }
     }
-
+    //imwrite("/sdcard/aligned/crop-aligned.jpg", res);
+    return res; //res is empty
     //imwrite("/sdcard/aligned/test2.jpg", frame);
-    return crop;
+    //return crop;
 }
 
 
@@ -234,8 +278,9 @@ void trainModel() {
 
 
 bool model_found() {
-    std::ifstream infile(fotopriv_model);
-    return infile.good();
+    //std::ifstream infile(fotopriv_model);
+    //return infile.good();
+    return true;
 }
 
 string recognizeFace(const char* path) {
@@ -256,27 +301,39 @@ string recognizeFace(const char* path) {
     frame = imread(imageFile, 0);
 
     if(!frame.empty() ){
-        testimg = detectAndDisplay(frame);
+        testimg = processFace(frame);
         //resize(testimg, testimg, Size(100, 100));
     }
 
-    if (!model_found) {
-        trainModel();
+    if (true) {
+        //return "model was found!";
+        model->load(fotopriv_model);
     }
     else {
-        model->load(fotopriv_model);
+        trainModel();
     }
 
     //Mat testSample = imread(imageFile, 0); // 0 loads it as grayscale
     //resize(testSample, testSample, Size(100, 100));
     int predictedLabel = -1;
     double confidence = 0.0;
-    model->predict(testimg, predictedLabel, confidence);
+    if(!testimg.empty()) {
+        model->predict(testimg, predictedLabel, confidence);
+    }
+    else {
+        return "Was not able to detect face.";
+    }
 
     //TODO: remember to use confidence
-    string result_message = format("Label is %d. Confidence: %f", predictedLabel, confidence);
+    string result_message;
+    //result_message = format("Label is %d. Confidence: %f", predictedLabel, confidence);
+    if(predictedLabel == 0) {
+        result_message = "You are in this picture.";
+    }
+    else {
+        result_message = "I don't know this face.";
+    }
     //std::cout << result_message << std::endl;
-
     return result_message;
 }
 
