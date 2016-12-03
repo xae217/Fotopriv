@@ -13,14 +13,9 @@
 
 #include <stdint.h>
 #include <iostream>
-//#include <cv.h>
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
-//#include <opencv2/highgui.hpp>
-//#include <opencv2/objdetect.hpp>
-//#include "opencv2/opencv.hpp"
-//#include "opencv2/imgproc/types_c.h"
-//#include <cvaux.h>
+
 
 using namespace std;
 using namespace cv;

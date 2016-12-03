@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         final String storagePath = copyToStorage();
 
         //copy sample image to cache
-        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.jimmy);
+        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.suit);
         copyToCache(sampleImg);
 
         final Button buttonClassify = (Button) findViewById(R.id.classify);
@@ -195,7 +195,8 @@ public class MainActivity extends AppCompatActivity {
             out = new FileOutputStream(destFolder + "/image.jpg");
             img.compress(Bitmap.CompressFormat.JPEG, 100, out);
             TextView tv = (TextView) findViewById(R.id.testTextView);
-            tv.setText(destFolder + "/image.jpg");
+            //tv.setText(destFolder + "/image.jpg");
+            tv.setText("Image loaded.");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -206,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         String[] files = null;
         String storagePath = getApplicationContext().getFilesDir().getAbsolutePath();
         try {
-            files = assetManager.list("Files");
+            files = assetManager.list("files");
         } catch (Exception e) {
             Log.d(MYLOG, "ERROR : " + e.toString());
         }
@@ -218,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Log.d(MYLOG, "file names : " + files[i]);
 
-                in = assetManager.open("Files/" + files[i]);
+                in = assetManager.open("files/" + files[i]);
                 out = new FileOutputStream(getApplicationContext().getFilesDir() + files[i]);
 
                 File file = new File(getApplicationContext().getFilesDir(), files[i]);
