@@ -1,8 +1,9 @@
 //
-// Created by xae18 on 10/17/16.
+// Created by xae18 on 10/17/16
 //
 
 #include <com_xae18_fotopriv_NativeClass.h>
+
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/blob.hpp>
 
@@ -11,17 +12,30 @@
 
 #include "opencv2/core.hpp"
 #include "opencv2/face.hpp"
-using namespace cv;
-using namespace cv::dnn;
-using namespace cv::face;
+#include <opencv2/objdetect.hpp>
+
+#include <flandmark_detector.h>
+#include <linreg.h>
+#include "face_alignment.h"
 
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
-
 #include <sstream>
+
+#include "FaceProcessor.h"
+using namespace cv;
+using namespace cv::dnn;
+using namespace cv::face;
 using namespace std;
 
+/* Global variables */
+RNG rng(12345); // Not used yet //TODO: make sure to use this or delete it
+
+//face recognition model
+Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,82.0);
+
+const char* fotopriv_model = "/sdcard/saved-model/fotopriv.yml";
 
 Mat norm_0_255(InputArray _src) {
     Mat src = _src.getMat();
@@ -41,30 +55,9 @@ Mat norm_0_255(InputArray _src) {
     return dst;
 }
 
-void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, char separator = ';') {
-    std::ifstream file(filename.c_str(), ifstream::in);
-    if (!file) {
-        string error_message = "No valid input file was given, please check the given filename.";
-        CV_Error(CV_StsBadArg, error_message);
-    }
-    string line, path, classlabel;
-    while (getline(file, line)) {
-        stringstream liness(line);
-        getline(liness, path, separator);
-        getline(liness, classlabel);
-        if(!path.empty() && !classlabel.empty()) {
-            Mat img = imread(path, 0);
-            resize(img, img, Size(100, 100));
-            images.push_back(img);
-            labels.push_back(atoi(classlabel.c_str()));
-        }
-    }
-}
-
 
 /* Find best class for the blob (i. e. class with maximal probability) */
-void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb)
-{
+void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb) {
     Mat probMat = probBlob.matRefConst().reshape(1, 1); //reshape the blob to 1x1000 matrix
     Point classNumber;
 
@@ -73,25 +66,24 @@ void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb)
 }
 
 
-std::vector<String> readClassNames(const char *path) {
+std::vector<string> readClassNames(const char *path) {
     char filename[1000];
     strcpy(filename, path);
     strcat(filename, "/synset_words.txt");
-    std::vector<String> classNames;
+    std::vector<string> classNames;
 
     std::ifstream fp(filename);
-    if (!fp.is_open())
-    {
+    if (!fp.is_open()) {
         std::cerr << "File with classes labels not found: " << filename << std::endl;
         exit(-1);
     }
 
     std::string name;
-    while (!fp.eof())
-    {
+    while (!fp.eof()) {
         std::getline(fp, name);
-        if (name.length())
-            classNames.push_back( name.substr(name.find(' ')+1) );
+        if (name.length()) {
+            classNames.push_back(name.substr(name.find(' ')+1));
+        }
     }
 
     fp.close();
@@ -99,137 +91,94 @@ std::vector<String> readClassNames(const char *path) {
 }
 
 
-string recognizeFace(const char* path) {
-    String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
-    string filename = "/sdcard/aligned-images/jimmy-fallon/";
-    string fn_csv = "/sdcard/csv/faces.csv";
-    // These vectors hold the images and corresponding labels.
-    std::vector<Mat> images;
-    std::vector<int> labels;
-    // Read in the data. This can fail if no valid
-    // input filename is given.
-    try {
-        read_csv(fn_csv, images, labels);
-    } catch (cv::Exception& e) {
-        cerr << "Error opening file \"" << fn_csv << "\". Reason: " << e.msg << endl;
-        // nothing more we can do
-        exit(1);
-    }
-    // Quit if there are not enough images for this demo.
-    if(images.size() <= 1) {
-        string error_message = "At least 2 images to recognize a face.";
-        CV_Error(CV_StsError, error_message);
-    }
-    // Get the height from the first image. We'll need this
-    // later in code to reshape the images to their original
-    // size:
-    int height = images[0].rows;
-    // Set test to input image
-    Mat testSample = imread(imageFile, 0); // 0 loads it as grayscale
-    resize(testSample, testSample, Size(100, 100));
-
-    Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,86.0);
-    model->train(images, labels);
-
-    int predictedLabel = -1;
-    double confidence = 0.0;
-    model->predict(testSample, predictedLabel, confidence);
-    //TODO: remember to use confidence
-    string result_message = format("Label is %d", predictedLabel);
-    //std::cout << result_message << std::endl;
-    return result_message;
-
-}
 
 string recognizeGoogLenet(const char* path) {
-    String modelTxt = string(path) + "bvlc_googlenet.prototxt.txt";
-    String modelBin = string(path) + "bvlc_googlenet.caffemodel";
-    String imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
+    string modelTxt = string(path) + "bvlc_googlenet.prototxt.txt";
+    string modelBin = string(path) + "bvlc_googlenet.caffemodel";
+    string imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
 
 
     //! [Create the importer of Caffe model]
     Ptr<dnn::Importer> importer;
-    try                                     //Try to import Caffe GoogleNet model
-    {
+    try {
         importer = dnn::createCaffeImporter(modelTxt, modelBin);
     }
-    catch (const cv::Exception &err)        //Importer can throw errors, we will catch them
-    {
+    catch (const cv::Exception &err) {
         std::cerr << err.msg << std::endl;
     }
-    //! [Create the importer of Caffe model]
+    // Create the importer of Caffe model
 
-    if (!importer)
-    {
+    if (!importer) {
         std::cerr << "Can't load network by using the following files: " << std::endl;
-        std::cerr << "prototxt:   " << modelTxt << std::endl;
-        std::cerr << "caffemodel: " << modelBin << std::endl;
-        std::cerr << "bvlc_googlenet.caffemodel can be downloaded here:" << std::endl;
-        std::cerr << "http://dl.caffe.berkeleyvision.org/bvlc_googlenet.caffemodel" << std::endl;
         exit(-1);
     }
 
-    //! [Initialize network]
+    // initialize network
     dnn::Net net;
     importer->populateNet(net);
     importer.release();                     //We don't need importer anymore
     //! [Initialize network]
 
-    //! [Prepare blob]
     Mat img = imread(imageFile);
-    if (img.empty())
-    {
+    if (img.empty()) {
         std::cerr << "Can't read image from the file: " << imageFile << std::endl;
         exit(-1);
     }
 
     resize(img, img, Size(224, 224));       //GoogLeNet accepts only 224x224 RGB-images
     dnn::Blob inputBlob = dnn::Blob::fromImages(img);   //Convert Mat to dnn::Blob image batch
-    //! [Prepare blob]
-
-    //! [Set input blob]
-    net.setBlob(".data", inputBlob);        //set the network input
-    //! [Set input blob]
-
-    //! [Make forward pass]
-    net.forward();                          //compute output
-    //! [Make forward pass]
-
-    //! [Gather output]
-    dnn::Blob prob = net.getBlob("prob");   //gather output of "prob" layer
-
+    //set input blob
+    net.setBlob(".data", inputBlob);
+    net.forward();
+    dnn::Blob prob = net.getBlob("prob");
     int classId;
     double classProb;
-    getMaxClass(prob, &classId, &classProb);//find the best class
-    //! [Gather output]
+    //find best class
+    getMaxClass(prob, &classId, &classProb);
 
     std::stringstream sstr;
     sstr << classId;
     std::string str1 = sstr.str();
 
 
-    std::vector<String> classNames = readClassNames(path);
+    std::vector<string> classNames = readClassNames(path);
     std::cout << "Best class: #" << classId << " '" << classNames.at(classId) << "'" << std::endl;
 
-
     return classNames.at(classId);
+}
 
+
+
+string analyze_image(string storage_path) {
+    string image_file = "/data/data/com.xae18.fotopriv/cache/image.jpg";
+    Mat frame = imread(image_file, 0);
+    FaceProcessor *fp = new FaceProcessor(storage_path, model);
+    vector<Rect> faces = fp->detect_face(image_file);
+    if (!faces.empty()) {
+        Mat face = fp->process_face(frame, faces);
+        if(fp->recognize_face(face)) {
+            return "You are in this image.";
+        }
+        else {
+            return "Face detected.";
+        }
+    }
+    else {
+        return "Face not found.";
+    }
 }
 
 JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
         (JNIEnv * env, jobject obj, jint selection, jstring path){
 
     const char *storagePath = env->GetStringUTFChars(path, 0);
-
-       // use your string
-
-
     if (selection == 1) {
-        return env->NewStringUTF(recognizeFace(storagePath).c_str());
+        //return env->NewStringUTF(recognizeFace(storagePath).c_str());
+        return env->NewStringUTF(analyze_image(storagePath).c_str());
     }
     else if (selection == 0) {
         return env->NewStringUTF(recognizeGoogLenet(storagePath).c_str());
     }
-    env->ReleaseStringUTFChars(path, storagePath);
 
+    env->ReleaseStringUTFChars(path, storagePath);
 }

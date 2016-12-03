@@ -8,9 +8,6 @@
 
 package com.xae18.fotopriv;
 
-import android.content.Context;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,26 +19,26 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.view.View;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 
 
-
 public class MainActivity extends AppCompatActivity {
 
-    private static final String MYLOG = "CopyToStorage" ;
+    private static final String MYLOG = "CopyToStorage";
     int REQUEST_CAMERA = 0, SELECT_FILE = 1;
 
 
@@ -62,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         final String storagePath = copyToStorage();
 
         //copy sample image to cache
-        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.space_shuttle);
+        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.suit);
         copyToCache(sampleImg);
 
         final Button buttonClassify = (Button) findViewById(R.id.classify);
@@ -80,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                 TextView clock = (TextView) findViewById(R.id.clock);
-                clock.setText("Classified in "+Double.toString(elapsedSeconds) + " secs");
+                clock.setText("Classified in " + Double.toString(elapsedSeconds) + " secs");
             }
         });
 
@@ -92,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
                 TextView tv = (TextView) findViewById(R.id.testTextView);
 
-                tv.setText(NativeClass.getStringFromNative(1,storagePath));
+                tv.setText(NativeClass.getStringFromNative(1, storagePath));
 
                 long tEnd = System.currentTimeMillis();
                 long tDelta = tEnd - tStart;
@@ -100,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                 TextView clock = (TextView) findViewById(R.id.clock);
-                clock.setText("Recognized in "+Double.toString(elapsedSeconds) + " secs");
+                clock.setText("Recognized in " + Double.toString(elapsedSeconds) + " secs");
             }
         });
 
@@ -116,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void selectImage() {
-        final CharSequence[] items = { "Take Photo", "Choose from Library", "Cancel" };
+        final CharSequence[] items = {"Take Photo", "Choose from Library", "Cancel"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("Add Photo!");
@@ -178,11 +175,8 @@ public class MainActivity extends AppCompatActivity {
                 imgview.setImageBitmap(img);
                 //testFaceDetector(selectedImagePath);
             }
-
             copyToCache(img);
-
         }
-
     }
 
 
@@ -201,7 +195,8 @@ public class MainActivity extends AppCompatActivity {
             out = new FileOutputStream(destFolder + "/image.jpg");
             img.compress(Bitmap.CompressFormat.JPEG, 100, out);
             TextView tv = (TextView) findViewById(R.id.testTextView);
-            tv.setText(destFolder + "/image.jpg");
+            //tv.setText(destFolder + "/image.jpg");
+            tv.setText("Image loaded.");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -212,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         String[] files = null;
         String storagePath = getApplicationContext().getFilesDir().getAbsolutePath();
         try {
-            files = assetManager.list("Files");
+            files = assetManager.list("files");
         } catch (Exception e) {
             Log.d(MYLOG, "ERROR : " + e.toString());
         }
@@ -224,9 +219,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Log.d(MYLOG, "file names : " + files[i]);
 
-                in = assetManager.open("Files/" + files[i]);
+                in = assetManager.open("files/" + files[i]);
                 out = new FileOutputStream(getApplicationContext().getFilesDir() + files[i]);
-
 
                 File file = new File(getApplicationContext().getFilesDir(), files[i]);
 
@@ -269,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Checks if the app has permission to write to device storage
-     *
+     * <p>
      * If the app does not has permission then the user will be prompted to grant permissions
      *
      * @param activity
