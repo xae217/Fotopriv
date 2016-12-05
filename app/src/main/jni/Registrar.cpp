@@ -34,7 +34,6 @@ void Registrar::read_csv() {
 
         if(!path.empty() && !classlabel.empty()) {
             Mat img = imread(path, 0);
-            //TODO: process images (detect, crop and align)
             FaceProcessor *fp = new FaceProcessor(storage_path_, model_);
             Mat processed_img = fp->process_face(img, fp->detect_face(path));
             //resize(img, img, Size(100, 100));

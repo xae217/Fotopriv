@@ -47,25 +47,25 @@
         android:background="#85c4f7"
         android:layout_below="@+id/clock"
         android:layout_centerHorizontal="true"
-        android:layout_width="150dp" />
+        android:layout_width="200dp" />
 
     <Button
-        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:text="LOAD IMAGE"
         android:id="@+id/loadImage"
         android:layout_marginTop="26dp"
         android:layout_below="@+id/classify"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:layout_width="200dp" />
 
     <Button
         android:text="Register User"
-        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:id="@+id/registerUser"
         android:layout_marginTop="19dp"
         android:layout_below="@+id/loadImage"
         android:layout_alignRight="@+id/loadImage"
-        android:layout_alignEnd="@+id/loadImage" />
+        android:layout_alignEnd="@+id/loadImage"
+        android:layout_width="200dp" />
 
 </RelativeLayout>
