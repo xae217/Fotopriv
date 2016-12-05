@@ -25,7 +25,7 @@ class Registrar {
 private:
     Ptr<FaceRecognizer> model_;
     string fotopriv_model_;
-    string csv_path_;
+    string csv_file_;
     string storage_path_;
 
     vector<Mat> images_;

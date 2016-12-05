@@ -4,17 +4,23 @@
 
 #include "Registrar.h"
 
-Registrar::Registrar(string filename, string path, Ptr<FaceRecognizer> model):csv_path_(filename),
+#include <android/log.h>
+#define APPNAME "Fotopriv"
+
+Registrar::Registrar(string filename, string path, Ptr<FaceRecognizer> model):csv_file_(filename),
     model_(model), storage_path_(path) {
-        fotopriv_model_ = storage_path_ + "fotopriv.yml";
+        fotopriv_model_ = storage_path_ + "/fotopriv.yml";
+        __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", fotopriv_model_.c_str());
     };
 
 void Registrar::read_csv() {
     char separator = ';';
-    std::ifstream file(csv_path_.c_str(), ifstream::in);
+    string csv_path = storage_path_ + "/" + csv_file_;
+    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", csv_path.c_str());
+    std::ifstream file(csv_path.c_str(), ifstream::in);
 
     if (!file) {
-        string error_message = "No valid input file was given, please check the given filename.";
+        string error_message = "No valid input file was given: " + csv_path;
         CV_Error(CV_StsBadArg, error_message);
     }
 
@@ -29,7 +35,7 @@ void Registrar::read_csv() {
         if(!path.empty() && !classlabel.empty()) {
             Mat img = imread(path, 0);
             //TODO: process images (detect, crop and align)
-            FaceProcessor *fp = new FaceProcessor(path, model_);
+            FaceProcessor *fp = new FaceProcessor(storage_path_, model_);
             Mat processed_img = fp->process_face(img, fp->detect_face(path));
             //resize(img, img, Size(100, 100));
             if(!processed_img.empty()) {
@@ -59,9 +65,10 @@ void Registrar::train_model() {
     try {
         read_csv();
     } catch (cv::Exception& e) {
-        cerr << "Error opening file \"" << csv_path_ << "\". Reason: " << e.msg << endl;
+        string error_message =  "Error opening file";
         // nothing more we can do
-        exit(1);
+        CV_Error(CV_StsBadArg, error_message);
+        //exit(1);
     }
     // Quit if there are not enough images for this demo.
     if(images_.size() <= 1) {

@@ -35,7 +35,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-
+//TODO: Get camera permission in MainActivity!!!!
 public class MainActivity extends AppCompatActivity {
 
     private static final String MYLOG = "CopyToStorage";
@@ -65,39 +65,14 @@ public class MainActivity extends AppCompatActivity {
         final Button buttonClassify = (Button) findViewById(R.id.classify);
         buttonClassify.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                long tStart = System.currentTimeMillis();
-
-                TextView tv = (TextView) findViewById(R.id.testTextView);
-
-                tv.setText(NativeClass.getStringFromNative(0, storagePath));
-
-                long tEnd = System.currentTimeMillis();
-                long tDelta = tEnd - tStart;
-                double elapsedSeconds = tDelta / 1000.0;
-
-
-                TextView clock = (TextView) findViewById(R.id.clock);
-                clock.setText("Classified in " + Double.toString(elapsedSeconds) + " secs");
-            }
-        });
-
-
-        final Button buttonRecognize = (Button) findViewById(R.id.RecognizeFace);
-        buttonRecognize.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                long tStart = System.currentTimeMillis();
-
-                TextView tv = (TextView) findViewById(R.id.testTextView);
-
-                tv.setText(NativeClass.getStringFromNative(1, storagePath));
-
-                long tEnd = System.currentTimeMillis();
-                long tDelta = tEnd - tStart;
-                double elapsedSeconds = tDelta / 1000.0;
-
-
-                TextView clock = (TextView) findViewById(R.id.clock);
-                clock.setText("Recognized in " + Double.toString(elapsedSeconds) + " secs");
+                File file = new File(storagePath + "/fotopriv.yml");
+                Log.d("File",storagePath + "/fotopriv.yml" );
+                if (file.exists()) {
+                    analyzeImage(1, storagePath);
+                }
+                else {
+                    alertUser(storagePath);
+                }
             }
         });
 
@@ -108,6 +83,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 selectImage();
+            }
+        });
+
+        final Button buttonRegister = (Button) findViewById(R.id.registerUser);
+        buttonRegister.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, RegisterUserActivity.class);
+                //EditText editText = (EditText) findViewById(R.id.edit_message);
+                //String message = editText.getText().toString();
+                //intent.putExtra(EXTRA_MESSAGE, message);
+                MainActivity.this.startActivity(intent);
             }
         });
     }
@@ -137,6 +123,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         builder.show();
+    }
+
+    private void analyzeImage(int flag, String storagePath) {
+        long tStart = System.currentTimeMillis();
+        TextView tv = (TextView) findViewById(R.id.testTextView);
+        Log.d("File", "FR model exists");
+        tv.setText(NativeClass.getStringFromNative(flag, storagePath));
+
+        long tEnd = System.currentTimeMillis();
+        long tDelta = tEnd - tStart;
+        double elapsedSeconds = tDelta / 1000.0;
+
+
+        TextView clock = (TextView) findViewById(R.id.clock);
+        clock.setText("Classified in " + Double.toString(elapsedSeconds) + " secs");
     }
 
     @Override
@@ -186,6 +187,33 @@ public class MainActivity extends AppCompatActivity {
         return file.exists();
     }
     */
+
+    private void alertUser(final String storagePath) {
+        AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
+        builder1.setMessage("Face recognition is disabled.");
+        builder1.setCancelable(true);
+
+        builder1.setPositiveButton(
+                "Continue",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        analyzeImage(0, storagePath);
+                        dialog.cancel();
+                    }
+                });
+
+        builder1.setNegativeButton(
+                "Cancel",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        AlertDialog alert11 = builder1.create();
+        alert11.show();
+    }
+
 
     private void copyToCache(Bitmap img) {
         String destFolder = getCacheDir().getAbsolutePath();
@@ -244,21 +272,14 @@ public class MainActivity extends AppCompatActivity {
         return storagePath;
     }
 
-//    private void testFaceDetector(String imagePath) {
-//        FaceDetector fd = new FaceDetector(getApplicationContext().getFilesDir().getAbsolutePath());
-//        try {
-//            fd.detectFace(imagePath);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+
 
     // API 23+ Requires to ask for permission dynamically.
 
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
     /**

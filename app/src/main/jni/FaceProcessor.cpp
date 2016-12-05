@@ -17,7 +17,7 @@ FaceProcessor::FaceProcessor(string path, Ptr<FaceRecognizer> model):storage_pat
     eyes_cascade_.load(eyes_cascade_path);
     flandmark_model_ = flandmark_init(flandmark_path.c_str());
 
-    fotopriv_model_ = storage_path_ + "fotopriv.yml";
+    fotopriv_model_ = storage_path_ + "/fotopriv.yml";
 }
 
 /* Returns empty Mat if failed to detect */

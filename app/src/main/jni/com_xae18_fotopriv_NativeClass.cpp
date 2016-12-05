@@ -24,6 +24,11 @@
 #include <sstream>
 
 #include "FaceProcessor.h"
+#include "Registrar.h"
+
+#include <android/log.h>
+#define APPNAME "Fotopriv"
+
 using namespace cv;
 using namespace cv::dnn;
 using namespace cv::face;
@@ -34,8 +39,6 @@ RNG rng(12345); // Not used yet //TODO: make sure to use this or delete it
 
 //face recognition model
 Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,82.0);
-
-const char* fotopriv_model = "/sdcard/saved-model/fotopriv.yml";
 
 Mat norm_0_255(InputArray _src) {
     Mat src = _src.getMat();
@@ -149,36 +152,48 @@ string recognizeGoogLenet(const char* path) {
 
 
 
-string analyze_image(string storage_path) {
+string analyze_image(string storage_path, bool enable_fr) {
+    string report = "";
     string image_file = "/data/data/com.xae18.fotopriv/cache/image.jpg";
     Mat frame = imread(image_file, 0);
     FaceProcessor *fp = new FaceProcessor(storage_path, model);
     vector<Rect> faces = fp->detect_face(image_file);
     if (!faces.empty()) {
+        report = report + "Face found. ";
         Mat face = fp->process_face(frame, faces);
-        if(fp->recognize_face(face)) {
-            return "You are in this image.";
-        }
-        else {
-            return "Face detected.";
+        if(fp->recognize_face(face) && enable_fr) {
+            report = report + "You are in this image. ";
         }
     }
     else {
-        return "Face not found.";
+        report = report + "Face not found. ";
     }
+
+    report =  report + recognizeGoogLenet(storage_path.c_str());
+    return report;
 }
 
 JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
         (JNIEnv * env, jobject obj, jint selection, jstring path){
 
     const char *storagePath = env->GetStringUTFChars(path, 0);
-    if (selection == 1) {
-        //return env->NewStringUTF(recognizeFace(storagePath).c_str());
-        return env->NewStringUTF(analyze_image(storagePath).c_str());
-    }
-    else if (selection == 0) {
-        return env->NewStringUTF(recognizeGoogLenet(storagePath).c_str());
-    }
+    bool  enable_fr = selection != 0;
+    return env->NewStringUTF(analyze_image(storagePath, enable_fr).c_str());
 
     env->ReleaseStringUTFChars(path, storagePath);
 }
+
+JNIEXPORT jint JNICALL Java_com_xae18_fotopriv_NativeClass_registerUser
+    (JNIEnv * env, jobject obj, jstring csvpath, jstring storagepath) {
+
+    const char *csv_path = env->GetStringUTFChars(csvpath, 0);
+    const char *storage_path = env->GetStringUTFChars(storagepath, 0);
+
+    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", storage_path);
+    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", csv_path);
+
+    Registrar *reg = new Registrar(csv_path, storage_path,  model);
+    reg->register_user();
+    return 1;
+}
+
