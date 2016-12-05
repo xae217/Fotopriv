@@ -10,10 +10,18 @@ extern "C" {
 /*
  * Class:     com_xae18_fotopriv_NativeClass
  * Method:    getStringFromNative
- * Signature: ()Ljava/lang/String;
+ * Signature: (ILjava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_xae18_fotopriv_NativeClass_getStringFromNative
   (JNIEnv *, jobject, jint, jstring);
+
+/*
+ * Class:     com_xae18_fotopriv_NativeClass
+ * Method:    registerUser
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_com_xae18_fotopriv_NativeClass_registerUser
+  (JNIEnv *, jobject, jstring, jstring);
 
 #ifdef __cplusplus
 }

@@ -6,4 +6,5 @@ package com.xae18.fotopriv;
 
 public class NativeClass {
     public native static String getStringFromNative(int selection, String storagePath);
+    public native static int registerUser(String csvPath, String storagePath);
 }
