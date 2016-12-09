@@ -35,11 +35,17 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-//TODO: Get camera permission in MainActivity!!!!
 public class MainActivity extends AppCompatActivity {
 
     private static final String MYLOG = "CopyToStorage";
-    int REQUEST_CAMERA = 0, SELECT_FILE = 1;
+    private static final int REQUEST_CAMERA = 0, SELECT_FILE = 1, REQUEST_EXTERNAL_STORAGE = 2;
+    private Bitmap img;
+
+    private static String[] FOTOPRIV_PERMISSIONS = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA
+    };
 
 
     static {
@@ -59,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         final String storagePath = copyToStorage();
 
         //copy sample image to cache
-        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.suit);
+        Bitmap sampleImg = BitmapFactory.decodeResource(getResources(), R.drawable.default_image);
         copyToCache(sampleImg);
 
         final Button buttonClassify = (Button) findViewById(R.id.classify);
@@ -102,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         final CharSequence[] items = {"Take Photo", "Choose from Library", "Cancel"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle("Add Photo!");
+        builder.setTitle("Load Photo!");
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int item) {
@@ -126,11 +132,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void analyzeImage(int flag, String storagePath) {
-        long tStart = System.currentTimeMillis();
-        TextView tv = (TextView) findViewById(R.id.testTextView);
+        //long tStart = System.currentTimeMillis();
+        //TextView tv = (TextView) findViewById(R.id.testTextView);
         Log.d("File", "FR model exists");
-        tv.setText(NativeClass.getStringFromNative(flag, storagePath));
+        String analyzisResult = NativeClass.getStringFromNative(flag, storagePath);
+        Intent intent = new Intent(MainActivity.this, PrivacyReportActivity.class);
+        intent.putExtra("result", analyzisResult);
+        //intent.putExtra("bitmap", img);
+        MainActivity.this.startActivity(intent);
 
+        //tv.setText(analyzisResult);
+
+        /*
         long tEnd = System.currentTimeMillis();
         long tDelta = tEnd - tStart;
         double elapsedSeconds = tDelta / 1000.0;
@@ -138,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
         TextView clock = (TextView) findViewById(R.id.clock);
         clock.setText("Classified in " + Double.toString(elapsedSeconds) + " secs");
+        */
     }
 
     @Override
@@ -146,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (resultCode == Activity.RESULT_OK) {
             ImageView imgview = (ImageView) findViewById(R.id.image);
-            Bitmap img;
+
             if (requestCode == REQUEST_CAMERA) {
                 img = (Bitmap) data.getExtras().get("data");
                 imgview.setImageBitmap(img);
@@ -163,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
                 BitmapFactory.decodeFile(selectedImagePath, options);
-                final int REQUIRED_SIZE = 200;
+                final int REQUIRED_SIZE = 224;
                 int scale = 1;
                 while (options.outWidth / scale / 2 >= REQUIRED_SIZE
                         && options.outHeight / scale / 2 >= REQUIRED_SIZE) {
@@ -181,16 +195,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    /* Check if file exists in storage
-    private boolean checkDependy(String fname) {
-        File file = getBaseContext().getFileStreamPath(fname);
-        return file.exists();
-    }
-    */
-
     private void alertUser(final String storagePath) {
         AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
-        builder1.setMessage("Face recognition is disabled.");
+        builder1.setMessage("Face recognition is disabled. Please register to let Fotopriv recognize you.");
         builder1.setCancelable(true);
 
         builder1.setPositiveButton(
@@ -224,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
             img.compress(Bitmap.CompressFormat.JPEG, 100, out);
             TextView tv = (TextView) findViewById(R.id.testTextView);
             //tv.setText(destFolder + "/image.jpg");
-            tv.setText("Image loaded.");
+            tv.setText("Image loaded");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -276,12 +283,6 @@ public class MainActivity extends AppCompatActivity {
 
     // API 23+ Requires to ask for permission dynamically.
 
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
-    private static String[] PERMISSIONS_STORAGE = {
-        Manifest.permission.READ_EXTERNAL_STORAGE,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
-
     /**
      * Checks if the app has permission to write to device storage
      * <p>
@@ -297,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
             // we don't have permission so prompt the user
             ActivityCompat.requestPermissions(
                     activity,
-                    PERMISSIONS_STORAGE,
+                    FOTOPRIV_PERMISSIONS,
                     REQUEST_EXTERNAL_STORAGE
             );
         }

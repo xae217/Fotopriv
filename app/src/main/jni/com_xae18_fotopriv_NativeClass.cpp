@@ -100,7 +100,8 @@ string recognizeGoogLenet(const char* path) {
     string modelBin = string(path) + "bvlc_googlenet.caffemodel";
     string imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
 
-
+   // __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", modelTxt.c_str());
+    //__android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", modelBin.c_str());
     //! [Create the importer of Caffe model]
     Ptr<dnn::Importer> importer;
     try {
@@ -123,12 +124,17 @@ string recognizeGoogLenet(const char* path) {
     //! [Initialize network]
 
     Mat img = imread(imageFile);
+    //Mat mean_value = imread("/sdcard/mean/imagenet_mean.binaryproto");
+    //cv::subtract(img, mean_value, img);
+
     if (img.empty()) {
         std::cerr << "Can't read image from the file: " << imageFile << std::endl;
         exit(-1);
     }
-
-    resize(img, img, Size(224, 224));       //GoogLeNet accepts only 224x224 RGB-images
+   // imwrite("/sdcard/aligned/before.jpg", img);
+    resize(img, img, Size(224, 224));       //GoogLeNet accepts only 224x224 RGB-
+    //resize(mean_value, mean_value, Size(224, 224));
+    //cv::subtract(img, mean_value, img);
     dnn::Blob inputBlob = dnn::Blob::fromImages(img);   //Convert Mat to dnn::Blob image batch
     //set input blob
     net.setBlob(".data", inputBlob);
@@ -145,11 +151,10 @@ string recognizeGoogLenet(const char* path) {
 
 
     std::vector<string> classNames = readClassNames(path);
-    std::cout << "Best class: #" << classId << " '" << classNames.at(classId) << "'" << std::endl;
+    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%d: %f", classId, classProb);
 
     return classNames.at(classId);
 }
-
 
 
 string analyze_image(string storage_path, bool enable_fr) {
@@ -159,15 +164,21 @@ string analyze_image(string storage_path, bool enable_fr) {
     FaceProcessor *fp = new FaceProcessor(storage_path, model);
     vector<Rect> faces = fp->detect_face(image_file);
     if (!faces.empty()) {
-        report = report + "Face found. ";
+        report = report + "Face found|";
         Mat face = fp->process_face(frame, faces);
-        if(fp->recognize_face(face) && enable_fr) {
-            report = report + "You are in this image. ";
+        if (enable_fr) {
+            if(fp->recognize_face(face)) {
+                report = report + "You are in this image|";
+            }
+            else {
+                report = report + "You are not in this image|";
+            }
         }
     }
     else {
-        report = report + "Face not found. ";
+        report = report + "Face not found|";
     }
+
 
     report =  report + recognizeGoogLenet(storage_path.c_str());
     return report;

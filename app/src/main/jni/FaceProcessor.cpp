@@ -6,6 +6,8 @@
 using namespace cv;
 using namespace cv::face;
 using namespace std;
+#include <android/log.h>
+#define APPNAME "Fotopriv"
 
 FaceProcessor::FaceProcessor(string path, Ptr<FaceRecognizer> model):storage_path_(path), fr_model_(model) {
     //load cascades
@@ -42,7 +44,7 @@ Mat FaceProcessor::process_face(Mat frame, vector<Rect> faces) {
 Mat FaceProcessor::align_face(Mat frame, vector<Rect> faces) {
     Mat res;
     vector<cv::Point2d> landmarks;
-
+    //imwrite("/sdcard/aligned/detect-p.jpg", frame);
     if(!faces.empty()) {
         landmarks = detectLandmarks(flandmark_model_, frame, faces[0]);
         Mat aligned_image;
@@ -57,7 +59,7 @@ Mat FaceProcessor::align_face(Mat frame, vector<Rect> faces) {
 
         if(!aligned_image.empty()) {
             resize(aligned_image, res, Size(100, 100), 0, 0, INTER_CUBIC);
-            //imwrite("/sdcard/aligned/linear.jpg", res);
+            //imwrite("/sdcard/aligned/aligned-p.jpg", res);
             return res;
         }
     }
@@ -88,7 +90,7 @@ Mat FaceProcessor::crop_face(Mat aligned) {
         crop = aligned(roi);
         if (!crop.empty()) {
             resize(crop, res, Size(100, 100), 0, 0, INTER_CUBIC);
-            //imwrite("/sdcard/aligned/crop.jpg", res);
+            //imwrite("/sdcard/aligned/crop-p.jpg", res);
             return res;
         }
     }
@@ -115,7 +117,8 @@ bool FaceProcessor::recognize_face(Mat processed_face) {
 
     //TODO: remember to use confidence
     string result_message;
-    //result_message = format("Label is %d. Confidence: %f", predictedLabel, confidence);
+    result_message = format("Label is %d. Confidence: %f", predicted_label, confidence);
+    //__android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", result_message.c_str());
     //std::cout << result_message << std::endl;
 
     // Label 0 is the user
