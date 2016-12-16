@@ -19,14 +19,18 @@ import java.util.ArrayList;
 
 public class AddUserActivity extends AppCompatActivity {
 
+
     static final int REQUEST_CODE_PICKER = 8;
     boolean selectedImages = false;
     String csvFileName = "fotopriv_images.csv";
 
-
+    /**
+     * onCreate method
+     *
+     * @param savedInstanceState Bundle
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_user);
 
@@ -46,12 +50,11 @@ public class AddUserActivity extends AppCompatActivity {
 
             public void onClick(View v) {
                 TextView tv = (TextView) findViewById(R.id.nameTF);
-                if(selectedImages) {
+                if (selectedImages) {
                     String name = tv.getText().toString();
-                    if(name.equalsIgnoreCase("")) {
+                    if (name.equalsIgnoreCase("")) {
                         tv.setError("Field must not be empty!");
-                    }
-                    else {
+                    } else {
                         String storagePath = getApplicationContext().getFilesDir().getAbsolutePath();
                         Log.d("File", storagePath + "/" + csvFileName);
                         File file = new File(storagePath + "/" + csvFileName);
@@ -66,11 +69,9 @@ public class AddUserActivity extends AppCompatActivity {
                             setResult(10, intent);
                             finish();
                         }
-                        //TODO: Handle when it doesn't exist...
                     }
 
-                }
-                else {
+                } else {
                     TextView tv2 = (TextView) findViewById(R.id.numOfSelcted);
                     tv2.setError("No images selected.");
                 }
@@ -88,7 +89,11 @@ public class AddUserActivity extends AppCompatActivity {
         }
     }
 
-
+    /**
+     * Creates and saves a csv file with the path of images to be used to train the facial recognition model.
+     *
+     * @param images ArrayList of selected images.
+     */
     private void createCsv(ArrayList<Image> images) {
         TextView tv = (TextView) findViewById(R.id.numOfSelcted);
         tv.setText("Selected " + images.size() + " images.");
@@ -113,8 +118,7 @@ public class AddUserActivity extends AppCompatActivity {
             } catch (IOException e) {
                 Log.e("Exception", "File write failed: " + e.toString());
             }
-        }
-        else {
+        } else {
             tv.setError("At least 5 images need to be selected.");
         }
 
