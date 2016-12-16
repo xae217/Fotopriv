@@ -1,6 +1,6 @@
 # README #
 
-Fotopriv - Photo Privacy Detecion on Mobile Devices \n
+Fotopriv - Photo Privacy Detecion on Mobile Devices <br />
 Senior Project by Xavier Escobar.
 
 
