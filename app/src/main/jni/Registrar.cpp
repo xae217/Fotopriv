@@ -1,6 +1,12 @@
-//
-// Created by xae18 on 11/29/16.
-//
+/**
+    Fotopriv - Registrar
+    User registration for facial recognition.
+    Registrar.cpp
+    Purpose: Trains face recognition model based on user images.
+
+    @author Xavier Escobar
+    @version 1.1
+*/
 
 #include "Registrar.h"
 
@@ -38,18 +44,6 @@ void Registrar::read_csv() {
             Mat processed_img = fp->process_face(img, fp->detect_face(path));
             //resize(img, img, Size(100, 100));
             if(!processed_img.empty()) {
-                //string write_path = string("/sdcard/aligned/p-") + img_counter2 + img_counter  + ".jpg";
-                //imwrite(write_path, processed_img);
-
-                /*
-                if(img_counter == 57) {
-                    img_counter = 48;
-                    img_counter2++;
-                }
-                else {
-                    img_counter++;
-                }
-                */
                 images_.push_back(processed_img);
                 labels_.push_back(atoi(classlabel.c_str()));
             }
@@ -58,7 +52,6 @@ void Registrar::read_csv() {
 }
 
 void Registrar::train_model() {
-
     // Read in the data. This can fail if no valid
     // input filename is given.
     try {

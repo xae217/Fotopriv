@@ -20,9 +20,8 @@ public class PrivacyReportActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_privacy_report);
         String result = getIntent().getExtras().getString("result");
-        //Bitmap analyzedImage = getIntent().getParcelableExtra("bitmap");
         ImageView iv = (ImageView) findViewById(R.id.analyzedImage);
-        ImageView iv2 =(ImageView) findViewById(R.id.feedback);
+        ImageView iv2 = (ImageView) findViewById(R.id.feedback);
         BitmapFactory.Options options = new BitmapFactory.Options();
         final int REQUIRED_SIZE = 200;
         int scale = 1;
@@ -41,15 +40,17 @@ public class PrivacyReportActivity extends AppCompatActivity {
             TextView title = (TextView) findViewById(R.id.reportTitle);
             title.setText("This image seems to be safe.");
             Bitmap bImage = BitmapFactory.decodeResource(this.getResources(), R.drawable.check);
-            //iv2.setImageResource(R.drawable.check);
             iv2.setImageBitmap(bImage);
-            //displayResult(result);
-        }
-        else {
+        } else {
             displayResult(result);
         }
     }
 
+    /**
+     * Displays the result of privacy detection analysis.
+     *
+     * @param result Result of the image analysis.
+     */
     private void displayResult(String result) {
         String analysisResult[] = result.split("\\|");
         for (int i = 0; i < analysisResult.length; i++) {
@@ -62,13 +63,12 @@ public class PrivacyReportActivity extends AppCompatActivity {
         tvs.add(tv);
         tvs.add(tv2);
         tvs.add(tv3);
-        for(int i = 0; i < tvs.size(); i++) {
+        for (int i = 0; i < tvs.size(); i++) {
             if (i < analysisResult.length) {
                 String r = analysisResult[i];
                 if (r.equalsIgnoreCase("not") || r.equalsIgnoreCase("face not found")) r = "";
                 tvs.get(i).setText(r);
-            }
-            else {
+            } else {
                 tvs.get(i).setText("");
             }
         }

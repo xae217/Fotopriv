@@ -19,8 +19,6 @@ import java.util.ArrayList;
 
 public class RegisterUserActivity extends AppCompatActivity {
 
-//TODO: Handle empty return from AddUserActivity
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,13 +45,7 @@ public class RegisterUserActivity extends AppCompatActivity {
                 //Creating the instance of PopupMenu
                 PopupMenu popup = new PopupMenu(RegisterUserActivity.this, button1);
                 //Inflating the Popup using xml file
-                popup.getMenuInflater()
-                        .inflate(R.menu.popup_menu, popup.getMenu());
-
-                //registering popup with OnMenuItemClickListener
-
-
-
+                popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
                 popup.show(); //showing popup menu
             }
         }); //closing the setOnClickListener method
@@ -63,8 +55,7 @@ public class RegisterUserActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //Intent intent = new Intent(RegisterUserActivity.this, AddUserActivity.class);
-        if(data != null) {
+        if (data != null) {
             String userName = data.getStringExtra("UserName");
             Log.d("RegUser", userName);
 

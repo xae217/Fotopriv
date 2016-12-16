@@ -1,32 +1,31 @@
-//
-// Created by xae18 on 10/17/16
-//
+/**
+    Fotopriv - Native Class (JNI)
+    NativeClass.cpp
+    Purpose: Native class for JNI calls. It handles image processing and user registration.
+
+    @author Xavier Escobar
+    @version 1.1
+*/
 
 #include <com_xae18_fotopriv_NativeClass.h>
-
 #include <opencv2/dnn.hpp>
 #include <opencv2/dnn/blob.hpp>
-
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-
 #include "opencv2/core.hpp"
 #include "opencv2/face.hpp"
 #include <opencv2/objdetect.hpp>
-
 #include <flandmark_detector.h>
 #include <linreg.h>
 #include "face_alignment.h"
-
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
-
 #include "FaceProcessor.h"
 #include "Registrar.h"
-
 #include <android/log.h>
+
 #define APPNAME "Fotopriv"
 
 using namespace cv;
@@ -34,32 +33,12 @@ using namespace cv::dnn;
 using namespace cv::face;
 using namespace std;
 
-/* Global variables */
-RNG rng(12345); // Not used yet //TODO: make sure to use this or delete it
-
-//face recognition model
+// Face recognition model
 Ptr<FaceRecognizer> model = createLBPHFaceRecognizer(1,8,8,8,82.0);
 
-Mat norm_0_255(InputArray _src) {
-    Mat src = _src.getMat();
-    // Create and return normalized image:
-    Mat dst;
-    switch(src.channels()) {
-    case 1:
-        cv::normalize(_src, dst, 0, 255, NORM_MINMAX, CV_8UC1);
-        break;
-    case 3:
-        cv::normalize(_src, dst, 0, 255, NORM_MINMAX, CV_8UC3);
-        break;
-    default:
-        src.copyTo(dst);
-        break;
-    }
-    return dst;
-}
-
-
-/* Find best class for the blob (i. e. class with maximal probability) */
+/**
+ * Find best class for the blob (i. e. class with maximal probability)
+ */
 void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb) {
     Mat probMat = probBlob.matRefConst().reshape(1, 1); //reshape the blob to 1x1000 matrix
     Point classNumber;
@@ -68,7 +47,9 @@ void getMaxClass(dnn::Blob &probBlob, int *classId, double *classProb) {
     *classId = classNumber.x;
 }
 
-
+/**
+ * Read class names from file
+ */
 std::vector<string> readClassNames(const char *path) {
     char filename[1000];
     strcpy(filename, path);
@@ -93,16 +74,16 @@ std::vector<string> readClassNames(const char *path) {
     return classNames;
 }
 
-
-
+/**
+ * Perform detection using fine-tuned GoogLeNet
+ * @param path path to internal storage
+ * @return predicted class name
+ */
 string recognizeGoogLenet(const char* path) {
     string modelTxt = string(path) + "bvlc_googlenet.prototxt.txt";
     string modelBin = string(path) + "bvlc_googlenet.caffemodel";
     string imageFile = "/data/data/com.xae18.fotopriv/cache/image.jpg";
 
-   // __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", modelTxt.c_str());
-    //__android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", modelBin.c_str());
-    //! [Create the importer of Caffe model]
     Ptr<dnn::Importer> importer;
     try {
         importer = dnn::createCaffeImporter(modelTxt, modelBin);
@@ -124,31 +105,25 @@ string recognizeGoogLenet(const char* path) {
     //! [Initialize network]
 
     Mat img = imread(imageFile);
-    //Mat mean_value = imread("/sdcard/mean/imagenet_mean.binaryproto");
-    //cv::subtract(img, mean_value, img);
 
     if (img.empty()) {
         std::cerr << "Can't read image from the file: " << imageFile << std::endl;
         exit(-1);
     }
-   // imwrite("/sdcard/aligned/before.jpg", img);
-    resize(img, img, Size(224, 224));       //GoogLeNet accepts only 224x224 RGB-
-    //resize(mean_value, mean_value, Size(224, 224));
-    //cv::subtract(img, mean_value, img);
+    resize(img, img, Size(224, 224));       //GoogLeNet accepts only 224x224 RGB images
     dnn::Blob inputBlob = dnn::Blob::fromImages(img);   //Convert Mat to dnn::Blob image batch
-    //set input blob
-    net.setBlob(".data", inputBlob);
+
+    net.setBlob(".data", inputBlob);  //set input blob
     net.forward();
     dnn::Blob prob = net.getBlob("prob");
     int classId;
     double classProb;
-    //find best class
-    getMaxClass(prob, &classId, &classProb);
+
+    getMaxClass(prob, &classId, &classProb); //find best class
 
     std::stringstream sstr;
     sstr << classId;
     std::string str1 = sstr.str();
-
 
     std::vector<string> classNames = readClassNames(path);
     __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%d: %f", classId, classProb);
@@ -156,13 +131,19 @@ string recognizeGoogLenet(const char* path) {
     return classNames.at(classId);
 }
 
-
+/**
+ * Perform privacy detection using both GoogLeNet and Face Recognition
+ * @param path path to internal storage.
+ * @param enable_fr enable face recognition (is user registered?).
+ * @return analysis result.
+ */
 string analyze_image(string storage_path, bool enable_fr) {
     string report = "";
     string image_file = "/data/data/com.xae18.fotopriv/cache/image.jpg";
     Mat frame = imread(image_file, 0);
     FaceProcessor *fp = new FaceProcessor(storage_path, model);
     vector<Rect> faces = fp->detect_face(image_file);
+
     if (!faces.empty()) {
         report = report + "Face found|";
         Mat face = fp->process_face(frame, faces);
@@ -178,7 +159,6 @@ string analyze_image(string storage_path, bool enable_fr) {
     else {
         report = report + "Face not found|";
     }
-
 
     report =  report + recognizeGoogLenet(storage_path.c_str());
     return report;
@@ -199,9 +179,6 @@ JNIEXPORT jint JNICALL Java_com_xae18_fotopriv_NativeClass_registerUser
 
     const char *csv_path = env->GetStringUTFChars(csvpath, 0);
     const char *storage_path = env->GetStringUTFChars(storagepath, 0);
-
-    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", storage_path);
-    __android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", csv_path);
 
     Registrar *reg = new Registrar(csv_path, storage_path,  model);
     reg->register_user();

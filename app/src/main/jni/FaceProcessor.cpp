@@ -1,6 +1,11 @@
-//
-// Created by xae18 on 11/27/16.
-//
+/**
+    Fotopriv - Face Processing
+    FaceProcessor.cpp
+    Purpose: Handles face processing: face detection, alignment, cropping and recogntion.
+
+    @author Xavier Escobar
+    @version 1.1
+*/
 #include "FaceProcessor.h"
 
 using namespace cv;
@@ -73,9 +78,7 @@ Mat FaceProcessor::crop_face(Mat aligned) {
     //Mat aligned;
     Mat res;
 
-    //TODO: test equalized vs non-equalized
     //equalizeHist(frame, frame);
-
     //aligned = alignFace(frame);
 
     if (!aligned.empty()) {
@@ -94,10 +97,7 @@ Mat FaceProcessor::crop_face(Mat aligned) {
             return res;
         }
     }
-    //imwrite("/sdcard/aligned/crop-aligned.jpg", res);
     return aligned; //original image
-    //imwrite("/sdcard/aligned/test2.jpg", frame);
-    //return crop;
 }
 
 
@@ -115,11 +115,8 @@ bool FaceProcessor::recognize_face(Mat processed_face) {
         return false;
     }
 
-    //TODO: remember to use confidence
     string result_message;
     result_message = format("Label is %d. Confidence: %f", predicted_label, confidence);
-    //__android_log_print(ANDROID_LOG_DEBUG, APPNAME, "%s", result_message.c_str());
-    //std::cout << result_message << std::endl;
 
     // Label 0 is the user
     return predicted_label == 0;

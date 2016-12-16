@@ -1,6 +1,12 @@
-//
-// Created by xae18 on 11/29/16.
-//
+/**
+    Fotopriv - Registrar header file.
+    User registration for facial recognition.
+    Registrar.h
+    Purpose: Trains face recognition model based on user images.
+
+    @author Xavier Escobar
+    @version 1.1
+*/
 #include <opencv2/imgproc.hpp>
 
 #include "opencv2/highgui/highgui.hpp"
@@ -35,7 +41,20 @@ private:
     void train_model();
 
 public:
-    Registrar(string, string, Ptr<FaceRecognizer>);
+    /**
+        Constructor.
+
+        @param string path to image.
+        @param string path to internal storage.
+        @param model face recognition model.
+    */
+    Registrar(string filename, string path, Ptr<FaceRecognizer> model);
+
+    /**
+        Registers a user, that is trains the model and saves it.
+
+        @return nada
+    */
     void register_user();
 };
 

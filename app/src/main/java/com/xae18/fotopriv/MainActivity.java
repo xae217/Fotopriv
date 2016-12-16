@@ -37,16 +37,15 @@ import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String MYLOG = "CopyToStorage";
+    //For camera permission
     private static final int REQUEST_CAMERA = 0, SELECT_FILE = 1, REQUEST_EXTERNAL_STORAGE = 2;
-    private Bitmap img;
 
+    //For storage permissions
     private static String[] FOTOPRIV_PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.CAMERA
+            Manifest.permission.CAMERA // and camera as well
     };
-
 
     static {
         System.loadLibrary("MyLib");
@@ -72,11 +71,10 @@ public class MainActivity extends AppCompatActivity {
         buttonClassify.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 File file = new File(storagePath + "/fotopriv.yml");
-                Log.d("File",storagePath + "/fotopriv.yml" );
+                Log.d("File", storagePath + "/fotopriv.yml");
                 if (file.exists()) {
                     analyzeImage(1, storagePath);
-                }
-                else {
+                } else {
                     alertUser(storagePath);
                 }
             }
@@ -96,9 +94,6 @@ public class MainActivity extends AppCompatActivity {
         buttonRegister.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, RegisterUserActivity.class);
-                //EditText editText = (EditText) findViewById(R.id.edit_message);
-                //String message = editText.getText().toString();
-                //intent.putExtra(EXTRA_MESSAGE, message);
                 MainActivity.this.startActivity(intent);
             }
         });
@@ -131,33 +126,24 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    /**
+     * Makes a JNI call to perform privacy detection on an image.
+     *
+     * @param flag        Shows if the user is registered. Facial recognition is disabled/enabled.
+     * @param storagePath Path to internal storage.
+     */
     private void analyzeImage(int flag, String storagePath) {
-        //long tStart = System.currentTimeMillis();
-        //TextView tv = (TextView) findViewById(R.id.testTextView);
         Log.d("File", "FR model exists");
         String analyzisResult = NativeClass.getStringFromNative(flag, storagePath);
         Intent intent = new Intent(MainActivity.this, PrivacyReportActivity.class);
         intent.putExtra("result", analyzisResult);
-        //intent.putExtra("bitmap", img);
         MainActivity.this.startActivity(intent);
-
-        //tv.setText(analyzisResult);
-
-        /*
-        long tEnd = System.currentTimeMillis();
-        long tDelta = tEnd - tStart;
-        double elapsedSeconds = tDelta / 1000.0;
-
-
-        TextView clock = (TextView) findViewById(R.id.clock);
-        clock.setText("Classified in " + Double.toString(elapsedSeconds) + " secs");
-        */
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
+        Bitmap img;
         if (resultCode == Activity.RESULT_OK) {
             ImageView imgview = (ImageView) findViewById(R.id.image);
 
@@ -188,13 +174,17 @@ public class MainActivity extends AppCompatActivity {
                 img = BitmapFactory.decodeFile(selectedImagePath, options);
 
                 imgview.setImageBitmap(img);
-                //testFaceDetector(selectedImagePath);
             }
             copyToCache(img);
         }
     }
 
 
+    /**
+     * Alert the user if facial recognition is disabled.
+     *
+     * @param storagePath
+     */
     private void alertUser(final String storagePath) {
         AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
         builder1.setMessage("Face recognition is disabled. Please register to let Fotopriv recognize you.");
@@ -221,7 +211,11 @@ public class MainActivity extends AppCompatActivity {
         alert11.show();
     }
 
-
+    /**
+     * Copies image to cache
+     *
+     * @param img Image to be copied to cache storage.
+     */
     private void copyToCache(Bitmap img) {
         String destFolder = getCacheDir().getAbsolutePath();
 
@@ -237,7 +231,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Copies needed resources to storage:
+     * Caffe model and prototxt.
+     * haarcascade for eye and frontal face recognition.
+     * flandmark_model.dat
+     * synset_words.txt
+     *
+     * @return Returns the internal storage path.
+     */
     private String copyToStorage() {
+        final String MYLOG = "CopyToStorage"; // for logging..
         AssetManager assetManager = getResources().getAssets();
         String[] files = null;
         String storagePath = getApplicationContext().getFilesDir().getAbsolutePath();
@@ -256,7 +260,6 @@ public class MainActivity extends AppCompatActivity {
 
                 in = assetManager.open("files/" + files[i]);
                 out = new FileOutputStream(getApplicationContext().getFilesDir() + files[i]);
-
                 File file = new File(getApplicationContext().getFilesDir(), files[i]);
 
                 byte[] buffer = new byte[65536 * 2];
@@ -264,8 +267,8 @@ public class MainActivity extends AppCompatActivity {
                 while ((read = in.read(buffer)) != -1) {
                     out.write(buffer, 0, read);
                 }
-                in.close();
 
+                in.close();
                 out.flush();
                 fileOutStream = new FileOutputStream(file);
                 fileOutStream.write(buffer);
@@ -280,15 +283,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-    // API 23+ Requires to ask for permission dynamically.
-
     /**
-     * Checks if the app has permission to write to device storage
-     * <p>
-     * If the app does not has permission then the user will be prompted to grant permissions
+     * Checks if the app has permission to write to device storage/
+     * If the app does not has permission then the user will be prompted to grant permissions.
      *
-     * @param activity
+     * @param activity Current Activity.
      */
     public static void verifyStoragePermissions(Activity activity) {
         // check if there is write permission
